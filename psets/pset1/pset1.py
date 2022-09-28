@@ -143,6 +143,24 @@ class SearchProblem(abc.ABC):
 
 
 ACTION_LIST = ["UP", "DOWN", "LEFT", "RIGHT"]
+ACTION_MOVE = {"UP": (-1, 0), "DOWN": (1, 0), "LEFT": (0, -1), "RIGHT": (0, 1)}
+
+class State:
+    def __init__(self, position, parent, action, pathCost, gnomesVisited):
+        self.state: Tuple[int, int] = position
+        self.parent: State = parent
+        self.action: str = action
+        self.pathCost: int = pathCost
+        self.gnomesVisited: list = gnomesVisited
+
+    def __str__(self):
+        return f"The position is {self.state} with parent {self.parent} and action {self.action} and path cost {self.pathCost} and gnomesVisited {self.gnomesVisited}"
+
+    def isEqual(self, state):
+        return (self.state == state.state) and (self.gnomesVisited == state.gnomesVisited)
+
+    def isStartState(self):
+        return self.parent is None
 
 class GridworldSearchProblem(SearchProblem):
     """
@@ -154,26 +172,78 @@ class GridworldSearchProblem(SearchProblem):
     def __init__(self, file):
         """Read the text file and initialize all necessary variables for the search problem"""
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        with open(file, 'r') as f:
+            tmp = f.readlines()
+
+            self.rows = int(tmp[0].strip("\n").split(" ")[0])
+            self.cols = int(tmp[0].strip("\n").split(" ")[1])
+
+            start = tmp[-1].strip("\n").split(" ")
+            self.startState = State((int(start[0]), int(start[1])), None, None, 0, [])
+
+            self.grid = [row.strip("\n").split(" ") for row in tmp[1:-1]]
+            self.goal = []
+            for idx, row in enumerate(self.grid):
+                for jdx, elem in enumerate(row):
+                    row[jdx] = int(elem)
+                    if (int(elem) == 1):
+                        self.goal.append((idx, jdx))
+            self.goal.sort()
+            # print(self.grid)
+            # print(self.startState)
+            # print(self.goal)
+        
+    def checkBounds(self, position: Tuple[int, int]) -> bool:
+        return (position[0] >= 0) and (position[1] >= 0) and (position[0] < self.rows) and (position[1] < self.cols) and (self.grid[position[0]][position[1]] != -1)
+
+    def isGnome(self, position: Tuple[int, int]) -> bool:
+        return position in self.goal
 
     def getStartState(self) -> "State":
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        return self.startState
 
     def isGoalState(self, state: "State") -> bool:
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        #print(f"Checking if {state.state} is goal: gnomesVisited {state.gnomesVisited} goal: {self.goal}")
+        state.gnomesVisited.sort()
+        return state.gnomesVisited == self.goal
+
+    def getSuccessor(self, state: "State", action: str) -> Tuple["State", str, int]:
+        rowAdd, colAdd = ACTION_MOVE[action]
+        newX = state.state[0] + rowAdd
+        newY = state.state[1] + colAdd
+        if (self.checkBounds((newX, newY))):
+            prevGnomesVisited = state.gnomesVisited.copy()
+            prevGnomesVisited.append((newX, newY)) if self.isGnome((newX, newY)) and ((newX, newY) not in state.gnomesVisited) else True
+            newState = State((newX, newY), state, action, state.pathCost + 1, prevGnomesVisited)
+            return (newState, action, 1)
+        newState = State(state.state, state, action, state.pathCost + 1, state.gnomesVisited.copy())            
+        return (newState, action, 1)
+
 
     def getSuccessors(self, state: "State") -> List[Tuple["State", str, int]]:
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        successors = []
+        for action in ACTION_LIST:
+            successors.append(self.getSuccessor(state, action))
+        return successors
 
     def getCostOfActions(self, actions: List[str]) -> int:
         "*** YOUR CODE HERE ***"
-        return NotImplementedError
+        return len(actions)
 
 
 def depthFirstSearch(problem: SearchProblem) -> List[str]:
+    def isCycle(state: State) -> bool:
+        if (state.isStartState()):
+            return False
+        currentState: State = state.parent
+        while (currentState is not None):
+            if (state.isEqual(currentState)):
+                return True
+            currentState = currentState.parent
+        return False
     """
     Search the deepest nodes in the search tree first.
 
@@ -188,7 +258,31 @@ def depthFirstSearch(problem: SearchProblem) -> List[str]:
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    raise NotImplementedError
+    startState: State = problem.getStartState()
+    # print(startState)
+
+    frontier: Stack = Stack()
+    frontier.push(startState)
+
+    result: List[str] = []
+    i = 0
+    while not frontier.isEmpty():
+        node: State = frontier.pop()
+        if problem.isGoalState(node):
+            currentState = node
+            #print("Current state: ", currentState)
+            while (not currentState.isStartState()):
+                #print(currentState)
+                result = [currentState.action] + result
+                currentState = currentState.parent
+            return result
+        elif not isCycle(node):
+            children = problem.getSuccessors(node)
+            for child in children:
+                #print(child[0])
+                frontier.push(child[0])
+
+
 
 
 def breadthFirstSearch(problem: SearchProblem) -> List[str]:
@@ -232,7 +326,7 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[str]:
 if __name__ == "__main__":
     ### Sample Test Cases ###
     # Run the following statements below to test the running of your program
-    gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt") # Test Case 1
+    gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case4.txt") # Test Case 1
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
     print(aStarSearch(gridworld_search_problem))

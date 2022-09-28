@@ -155,6 +155,15 @@
         the cost, so it is not admissible. 
     \end{enumerate}
     \item (2 points) Describe a state space in which iterative deepening search performs much worse than depth-first search (for example, $\Theta(n^2)$ vs. $\Theta(n)$).
+    \\ First, we assume that DFS and IDS expand left-most nodes first. Now, suppose we have a finite state space where each state has $b$ successors and the 
+    goal is at level $d$. Specifically, the solution is the left-most node on level $d$. In this state space, DFS finds the goal after just $d $ actions, which is 
+    $O(d)$ time. IDS, on the other hand, has to try all the depth levels from $1$ to $d-1$ before finally reaching depth level $d$ and finding the goal. So IDS expands the $b$ children of the root $d$ times, the $b^2$ nodes on the next level $d-1$ times, and so on and so forth. 
+    So the number of nodes expanded is 
+    \begin{align*}
+        bd + b^2(d - 1) + b^3 (d - 2) + ... + 2b^{d - 1}
+    \end{align*}
+    , which is $O(b^d)$ asymptotically. This is much worse than $O(d)$. 
+
 \end{enumerate}
 
 
@@ -171,11 +180,77 @@
 
 \begin{enumerate}
     \item (1 point) What is the branching factor $b$ in this state space? In other words, for each state, how many neighbors does that state have? 
+    \\ $b = 4$ 
     \item (2 points) Is $h(x,y) = |x - u| + |y - v|$ an admissible heuristic for a state at $(x, y)$? Is it a consistent heuristic?
+    \\ The heuristic is admissible. The fornula for the heuristic is the Manhattan Distance from $(x, y)$ to $(u, v)$, which, on a 2D grid, is the shortest 
+    distance from any two points when you can only move at right angles along the axes. Because each move costs one unit, the cost of the optimal path from a state to the goal is 
+    equal to the manhattan distance. The heuristic is also consistent: in this search space, 2 of the 4 possible moves on state $(x, y)$ inch us closer toward the goal by one unit and 
+    2 of the moves put us farther away by one unit. First, assume action $a$ moves us in a direction opposite the goal from state $(x, y)$ to $(x', y')$.
+    Then, 
+    \begin{align*}
+        c((x, y), a, (x', y')) + h((x', y')) &= 1 + (h((x, y)) + 1)\\ &> h((x, y))
+    \end{align*}
+    Now, suppose that action $a$ moves us closer to the goal. Then, 
+    \begin{align*}
+        c((x, y), a, (x', y')) + h((x', y')) &= 1 + (h((x, y)) - 1)\\ &= h((x, y))
+    \end{align*}
+    Hence, $h$ is consistent.
     \item (2 points) What is the maximum number of nodes expanded by A* Graph Search using $h$?\footnote{\label{max}``maximum" refers to worst-case tie-breaking, i.e. when choosing among states with the same desirability as the goal state, assume the goal state is chosen last.}
+    \\ First, assume that the goal state is not on the $x$ or $y$ axes: A* search trivially finds the optimal path in the least number of steps. 
+    When the goal state, $(u, v)$, is not on the $x$ or $y$ axes, there are two moves from the initial state that move us further from the goal and two moves that move us toward the goal. 
+    Suppose $(x, y)$ is a successor of the initial state and is caused by a move that moves us further from the goal state. Then, 
+    \begin{align*}
+        f((x, y)) &= g((x, y)) + h((x, y)) \\ 
+        &= 1 + (h((x, y)) + 1)\\ 
+        &= h((x, y)) + 2
+    \end{align*}
+    Now, suppose $(x, y)$ is a successor of the initial state and is caused by a move that moves us toward from the goal state. Then,
+    \begin{align*}
+        f((x, y)) &= g((x, y)) + h((x, y)) \\ 
+        &= 1 + (h((x, y)) - 1)\\ 
+        &= h((x, y))
+    \end{align*}
+    Then A* only ever expands nodes that move us toward the initial state, of which there are $u*v$ possible nodes. In fact, for any node $(x, y)$ in that set, we have that 
+    \begin{align*}
+        f((x, y)) &= g((x, y)) + h((x, y))\\ 
+        &= (|x - 0| + |y - 0|) + (|u - x| + |v - y|) \\ 
+        &= u + v
+    \end{align*}
+    Where $g((x, y)) = |x - 0| + |y - 0|$ because the only way to get from the initial state to $(x, y)$ is by moving at right angles along the axes. This proves that all $u*v$ nodes have 
+    the same $f(n)$ value so in the worst case scenario, A* expands all $u*v$ nodes!
     \item (1 point) Does $h$ remain admissible if some links are removed?
+    \\ Yes because if links are removed then we would have to perform extra moves and expand more nodes than the heuristic suggests, so the heuristic is still an underestimate and therefore still 
+    admissible. 
     \item (1 point) Does $h$ remain admissible if some links are added between nonadjacent states? % add consistency
-    \item (6 points) Take $h_2(x,y) = \sqrt{h(x,y)}$ with the original search space. Is $h_2$ admissible? Is it consistent?
+    \\ No. For example, if a link was added from a neighbor of the initial state to the goal state and if we gave this link unit cost, then 
+    the heuristic would overestimate the path-cost for that node. 
+    \item (6 points) Take $h_2(x,y) = \sqrt{h(x,y)}$ with the original search space. Is $h_2$ admissible? Is it consistent?\\ 
+    \\ Let $C*_{x, y}$ be the optimal cost from state $(x, y)$ to the goal. From part 1, we know that the optimal cost from 
+    state $(x, y)$ to the goal IS the manhattan distance, $h((x, y))$, so $C*_{x, y} = h((x, y))$. Then, for all $(x, y)$ we have 
+    \begin{align*}
+        h_2((x, y)) &= \sqrt{h((x, y))} \\ 
+        &\leq h((x, y))\\ 
+        & \leq C*_{x, y}
+    \end{align*}
+    so the heuristic is admissible. \\ 
+    Also from above, we know that an action either moves us either away from or toward the goal. Consider the former: given state 
+    $(x, y)$ we consider an action, $a$, that moves us to a state $(x', y')$ away from the goal. Then, 
+    \begin{align*}
+        c((x, y), a, (x', y')) + h_2((x', y')) &= 1 + \sqrt{h((x', y'))} \\ 
+        &= 1 + \sqrt{(1 + h((x, y)))} \\ 
+        &> \sqrt{h((x, y))} \\ 
+        = h_2((x, y))\\ 
+    \end{align*}
+    Now, we consider the latter: given state 
+    $(x, y)$ we consider an action, $a$, that moves us to a state $(x', y')$ toward the goal. \\Then, 
+    \begin{align*}
+        c((x, y), a, (x', y')) + h_2((x', y')) &= 1 + \sqrt{h((x', y'))} \\ 
+        &= 1 + \sqrt{h((x, y)) - 1} \\ 
+        &\geq \sqrt{h((x, y))} \\ 
+        &= h_2((x, y)) 
+    \end{align*}
+    So, $\forall (x, y)$ and action $a$, it holds that $c((x, y), a, (x', y')) + h_2((x', y')) \geq h(x, y)$, therefore, the heuristic is 
+    consistent.
 \end{enumerate}
 \end{statement}
 
