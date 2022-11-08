@@ -143,7 +143,7 @@ class SearchProblem(abc.ABC):
 
 
 ACTION_LIST = ["UP", "DOWN", "LEFT", "RIGHT"]
-ACTION_MOVE = {"UP": (-1, 0), "DOWN": (1, 0), "LEFT": (0, -1), "RIGHT": (0, 1)}
+ACTION_MOVE = {"UP": (1, 0), "DOWN": (-1, 0), "LEFT": (0, -1), "RIGHT": (0, 1)}
 
 class State:
     def __init__(self, position, parent, action, pathCost, gnomesVisited):
@@ -181,7 +181,7 @@ class GridworldSearchProblem(SearchProblem):
             start = tmp[-1].strip("\n").split(" ")
             self.startState = State((int(start[0]), int(start[1])), None, None, 0, [])
 
-            self.grid = [row.strip("\n").split(" ") for row in tmp[1:-1]]
+            self.grid = [row.strip("\n").split(" ") for row in reversed(tmp[1:-1])]
             self.goal = []
             for idx, row in enumerate(self.grid):
                 for jdx, elem in enumerate(row):
@@ -189,12 +189,12 @@ class GridworldSearchProblem(SearchProblem):
                     if (int(elem) == 1):
                         self.goal.append((idx, jdx))
             self.goal.sort()
-            # print(self.grid)
-            # print(self.startState)
-            # print(self.goal)
+            print(self.grid)
+            print(self.startState)
+            print(self.goal)
         
     def checkBounds(self, position: Tuple[int, int]) -> bool:
-        return (position[0] >= 0) and (position[1] >= 0) and (position[0] < self.rows) and (position[1] < self.cols) and (self.grid[position[0]][position[1]] != -1)
+        return (position[0] >= 0) and (position[1] >= 0) and (position[0] < self.rows) and (position[1] < self.cols)
 
     def isGnome(self, position: Tuple[int, int]) -> bool:
         return position in self.goal
@@ -259,7 +259,7 @@ def depthFirstSearch(problem: SearchProblem) -> List[str]:
     """
     "*** YOUR CODE HERE ***"
     startState: State = problem.getStartState()
-    # print(startState)
+    print(startState)
 
     frontier: Stack = Stack()
     frontier.push(startState)
@@ -326,7 +326,7 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[str]:
 if __name__ == "__main__":
     ### Sample Test Cases ###
     # Run the following statements below to test the running of your program
-    gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case4.txt") # Test Case 1
+    gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt") # Test Case 1
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
     print(aStarSearch(gridworld_search_problem))
